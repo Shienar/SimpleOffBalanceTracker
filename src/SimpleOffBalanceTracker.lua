@@ -44,7 +44,28 @@ function SOBT.OnUpdate()
 		for i=1, GetNumBuffs("reticleover") do
 			local _, _, endTime, _, _, _, _, _, _, _, abilityID, _, _ = GetUnitBuffInfo("reticleover", i)
 			local timeRemaining = math.floor((endTime-(GetGameTimeMilliseconds()/1000))*10)/10 -- precision to 0.1 seconds
-			if abilityID == 39077 then
+			if abilityID == 39077 or 
+				abilityID == 45902 or --OB from blocking charge attack.
+				abilityID == 2727 or --Generic off balance
+				abilityID == 120014 or --trial dummy off balance
+				abilityID == 23808 or --lava whip off balance
+				abilityID == 20806 or --molten whip off balance
+				abilityID == 34117 or --flame lash off balance
+				abilityID == 25256 or --veiled strike
+				abilityID == 34733 or --surprise attack
+				abilityID ==34737 or --concealed weapon
+				abilityID == 130129 or --dive
+				abilityID == 130139 or --cutting dive
+				abilityID == 130145 or --screaming cliff racer
+				abilityID == 125650 or --ruinous scythe
+				abilityID == 131562 or --dizzying swing
+				abilityID == 62968 or --concussed (wall)
+				abilityID == 39077 or --concussed (unstable)
+				abilityID == 62988 or --concussed (blockade
+				abilityID == 137257 or --roar
+				abilityID == 45834 or --ferocious roar
+				abilityID == 137312 --deafening roar
+			then
 				if timeRemaining > 2 then
 					timeRemaining = math.floor(timeRemaining)
 				end
