@@ -64,6 +64,7 @@ function SOBT.OnUpdate()
 				abilityID == 62988 or --concussed (blockade
 				abilityID == 137257 or --roar
 				abilityID == 45834 or --ferocious roar
+				abilityID == 125750 or --ruinous scythe
 				abilityID == 137312 --deafening roar
 			then
 				if timeRemaining > 2 then
