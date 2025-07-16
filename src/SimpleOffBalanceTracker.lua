@@ -93,9 +93,26 @@ function SOBT.OnUpdate()
 	end
 end
 
+local function fragmentChange(oldState, newState)
+	if newState == SCENE_FRAGMENT_SHOWN then
+		if SOBT.savedVariables.inCombatOnly == false then
+			OBIndicator:SetHidden(SOBT.savedVariables.checked)
+		elseif IsUnitInCombat("player") then
+			OBIndicator:SetHidden(SOBT.savedVariables.checked)
+		else
+			OBIndicator:SetHidden(true)
+		end
+	elseif newState == SCENE_FRAGMENT_HIDDEN then
+		OBIndicator:SetHidden(true)
+	end
+end
+
 function SOBT.Initialize()
 	--Load and apply saved variables
 	SOBT.savedVariables = ZO_SavedVars:NewAccountWide("SOBTSavedVariables", 1, nil, SOBT.defaults, GetWorldName())
+	
+	HUD_FRAGMENT:RegisterCallback("StateChange", fragmentChange)
+	
 	if SOBT.savedVariables.inCombatOnly == false then
 		OBIndicator:SetHidden(SOBT.savedVariables.checked)
 	elseif IsUnitInCombat("player") then
@@ -103,6 +120,7 @@ function SOBT.Initialize()
 	else
 		OBIndicator:SetHidden(true)
 	end
+	
 	OBIndicatorLabel:SetColor(SOBT.savedVariables.colorR_Inactive, SOBT.savedVariables.colorG_Inactive, SOBT.savedVariables.colorB_Inactive)
 	OBIndicatorLabel:SetAlpha(SOBT.savedVariables.colorA_Inactive)
 	OBIndicatorLabel:SetFont(SOBT.savedVariables.selectedFont)
@@ -120,6 +138,8 @@ function SOBT.Initialize()
 	local textSection = {type = LibHarvensAddonSettings.ST_SECTION,label = "Text",}
 	local positionSection = {type = LibHarvensAddonSettings.ST_SECTION,label = "Position",}
 	
+	local changeCounter = 0
+	
 	local toggle = {
         type = LibHarvensAddonSettings.ST_CHECKBOX, --setting type
         label = "Hide Tracker?", 
@@ -128,6 +148,21 @@ function SOBT.Initialize()
         setFunction = function(state) 
             SOBT.savedVariables.checked = state
 			OBIndicator:SetHidden(state)
+			
+			if state ==  false then
+				--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+				OBIndicator:SetHidden(false)
+				changeCounter = changeCounter + 1
+				local changeNum = changeCounter
+				zo_callLater(function()
+					if changeNum == changeCounter then
+						changeCounter = 0
+						if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+							OBIndicator:SetHidden(true)
+						end
+					end
+				end, 5000)
+			end
         end,
         getFunction = function() 
             return SOBT.savedVariables.checked
@@ -144,8 +179,36 @@ function SOBT.Initialize()
             SOBT.savedVariables.inCombatOnly = state
 			if SOBT.savedVariables.inCombatOnly == false then
 				OBIndicator:SetHidden(SOBT.savedVariables.checked)
+				if SOBT.savedVariables.checked == false then
+					--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+					OBIndicator:SetHidden(false)
+					changeCounter = changeCounter + 1
+					local changeNum = changeCounter
+					zo_callLater(function()
+						if changeNum == changeCounter then
+							changeCounter = 0
+							if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+								OBIndicator:SetHidden(true)
+							end
+						end
+					end, 5000)
+				end
 			elseif IsUnitInCombat("player") then
 				OBIndicator:SetHidden(SOBT.savedVariables.checked)
+				if SOBT.savedVariables.checked == false then
+						--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+					OBIndicator:SetHidden(false)
+					changeCounter = changeCounter + 1
+					local changeNum = changeCounter
+					zo_callLater(function()
+						if changeNum == changeCounter then
+							changeCounter = 0
+							if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+								OBIndicator:SetHidden(true)
+							end
+						end
+					end, 5000)
+				end
 			else
 				OBIndicator:SetHidden(true)
 			end
@@ -179,13 +242,18 @@ function SOBT.Initialize()
 			SOBT.savedVariables.offset_x = SOBT.defaults.offset_x
 			SOBT.savedVariables.offset_y = SOBT.defaults.offset_y
 			
-			if SOBT.savedVariables.inCombatOnly == false then
-				OBIndicator:SetHidden(SOBT.savedVariables.checked)
-			elseif IsUnitInCombat("player") then
-				OBIndicator:SetHidden(SOBT.savedVariables.checked)
-			else
-				OBIndicator:SetHidden(true)
-			end
+			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+			OBIndicator:SetHidden(false)
+			changeCounter = changeCounter + 1
+			local changeNum = changeCounter
+			zo_callLater(function()
+				if changeNum == changeCounter then
+					changeCounter = 0
+					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+						OBIndicator:SetHidden(true)
+					end
+				end
+			end, 5000)
 			
 			OBIndicatorLabel:SetColor(SOBT.savedVariables.colorR, SOBT.savedVariables.colorG, SOBT.savedVariables.colorB)
 			OBIndicatorLabel:SetAlpha(SOBT.savedVariables.colorA)
@@ -207,6 +275,19 @@ function SOBT.Initialize()
             SOBT.savedVariables.colorR, SOBT.savedVariables.colorG, SOBT.savedVariables.colorB, SOBT.savedVariables.colorA = ...
 			OBIndicatorLabel:SetColor(SOBT.savedVariables.colorR, SOBT.savedVariables.colorG, SOBT.savedVariables.colorB)
 			OBIndicatorLabel:SetAlpha(SOBT.savedVariables.colorA)
+			
+			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+			OBIndicator:SetHidden(false)
+			changeCounter = changeCounter + 1
+			local changeNum = changeCounter
+			zo_callLater(function()
+				if changeNum == changeCounter then
+					changeCounter = 0
+					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+						OBIndicator:SetHidden(true)
+					end
+				end
+			end, 5000)
         end,
         default = {SOBT.defaults.colorR, SOBT.defaults.colorG, SOBT.defaults.colorB, SOBT.defaults.colorA},
         getFunction = function()
@@ -223,7 +304,20 @@ function SOBT.Initialize()
             SOBT.savedVariables.colorR_Cooldown, SOBT.savedVariables.colorG_Cooldown, SOBT.savedVariables.colorB_Cooldown, SOBT.savedVariables.colorA_Cooldown = ...
 			OBIndicatorLabel:SetColor(SOBT.savedVariables.colorR_Cooldown, SOBT.savedVariables.colorG_Cooldown, SOBT.savedVariables.colorB_Cooldown)
 			OBIndicatorLabel:SetAlpha(SOBT.savedVariables.colorA_Cooldown)
-        end,
+       
+			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+			OBIndicator:SetHidden(false)
+			changeCounter = changeCounter + 1
+			local changeNum = changeCounter
+			zo_callLater(function()
+				if changeNum == changeCounter then
+					changeCounter = 0
+					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+						OBIndicator:SetHidden(true)
+					end
+				end
+			end, 5000)
+	   end,
         default = {SOBT.defaults.colorR_Cooldown, SOBT.defaults.colorG_Cooldown, SOBT.defaults.colorB_Cooldown, SOBT.defaults.colorA_Cooldown},
         getFunction = function()
             return SOBT.savedVariables.colorR_Cooldown, SOBT.savedVariables.colorG_Cooldown, SOBT.savedVariables.colorB_Cooldown, SOBT.savedVariables.colorA_Cooldown
@@ -239,7 +333,20 @@ function SOBT.Initialize()
             SOBT.savedVariables.colorR_Inactive, SOBT.savedVariables.colorG_Inactive, SOBT.savedVariables.colorB_Inactive, SOBT.savedVariables.colorA_Inactive= ...
 			OBIndicatorLabel:SetColor(SOBT.savedVariables.colorR_Inactive, SOBT.savedVariables.colorG_Inactive, SOBT.savedVariables.colorB_Inactive)
 			OBIndicatorLabel:SetAlpha(SOBT.savedVariables.colorA_Inactive)
-        end,
+       
+			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+			OBIndicator:SetHidden(false)
+			changeCounter = changeCounter + 1
+			local changeNum = changeCounter
+			zo_callLater(function()
+				if changeNum == changeCounter then
+					changeCounter = 0
+					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+						OBIndicator:SetHidden(true)
+					end
+				end
+			end, 5000)
+	    end,
         default = {SOBT.defaults.colorR_Inactive, SOBT.defaults.colorG_Inactive, SOBT.defaults.colorB_Inactive, SOBT.defaults.colorA_Inactive},
         getFunction = function()
             return SOBT.savedVariables.colorR_Inactive, SOBT.savedVariables.colorG_Inactive, SOBT.savedVariables.colorB_Inactive, SOBT.savedVariables.colorA_Inactive
@@ -255,6 +362,19 @@ function SOBT.Initialize()
 			OBIndicatorLabel:SetFont(item.data)
 			SOBT.savedVariables.selectedText_font = name
 			SOBT.savedVariables.selectedFont = item.data
+			
+			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+			OBIndicator:SetHidden(false)
+			changeCounter = changeCounter + 1
+			local changeNum = changeCounter
+			zo_callLater(function()
+				if changeNum == changeCounter then
+					changeCounter = 0
+					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+						OBIndicator:SetHidden(true)
+					end
+				end
+			end, 5000)
         end,
         getFunction = function()
             return SOBT.savedVariables.selectedText_font
@@ -313,7 +433,20 @@ function SOBT.Initialize()
 			OBIndicator:SetAnchor(SOBT.savedVariables.selectedPos, GuiRoot, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
 			OBIndicatorLabel:ClearAnchors()
 			OBIndicatorLabel:SetAnchor(SOBT.savedVariables.selectedPos, OBIndicator, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-        end,
+        
+			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+			OBIndicator:SetHidden(false)
+			changeCounter = changeCounter + 1
+			local changeNum = changeCounter
+			zo_callLater(function()
+				if changeNum == changeCounter then
+					changeCounter = 0
+					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+						OBIndicator:SetHidden(true)
+					end
+				end
+			end, 5000)
+		end,
         getFunction = function()
             return SOBT.savedVariables.selectedText_pos
         end,
@@ -371,7 +504,20 @@ function SOBT.Initialize()
 			OBIndicator:SetAnchor(SOBT.savedVariables.selectedPos, GuiRoot, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
 			OBIndicatorLabel:ClearAnchors()
 			OBIndicatorLabel:SetAnchor(SOBT.savedVariables.selectedPos, OBIndicator, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-        end,
+        
+			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+			OBIndicator:SetHidden(false)
+			changeCounter = changeCounter + 1
+			local changeNum = changeCounter
+			zo_callLater(function()
+				if changeNum == changeCounter then
+					changeCounter = 0
+					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+						OBIndicator:SetHidden(true)
+					end
+				end
+			end, 5000)
+		end,
         getFunction = function()
             return SOBT.savedVariables.offset_x
         end,
@@ -396,7 +542,20 @@ function SOBT.Initialize()
 			OBIndicator:SetAnchor(SOBT.savedVariables.selectedPos, GuiRoot, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
 			OBIndicatorLabel:ClearAnchors()
 			OBIndicatorLabel:SetAnchor(SOBT.savedVariables.selectedPos, OBIndicator, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-        end,
+        
+			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+			OBIndicator:SetHidden(false)
+			changeCounter = changeCounter + 1
+			local changeNum = changeCounter
+			zo_callLater(function()
+				if changeNum == changeCounter then
+					changeCounter = 0
+					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+						OBIndicator:SetHidden(true)
+					end
+				end
+			end, 5000)
+		end,
         getFunction = function()
             return SOBT.savedVariables.offset_y
         end,
