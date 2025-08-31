@@ -16,8 +16,8 @@ SOBT.defaults = {
 	inCombatOnly = true,
 	selectedText_font = "34",
 	selectedFont = "ZoFontGamepad34",
-	selectedText_pos = "Top Left",
-	selectedPos = 3,
+	selectedText_pos = "Top Left", 	--Legacy settings. Kept in order to not mess with player's settings on update.
+	selectedPos = 3,				--Legacy settings. Kept in order to not mess with player's settings on update.
 	checked = false,
 	offset_x = 0,
 	offset_y = 0,
@@ -126,9 +126,6 @@ function SOBT.Initialize()
 	OBIndicatorLabel:SetFont(SOBT.savedVariables.selectedFont)
 	OBIndicator:ClearAnchors()
 	OBIndicator:SetAnchor(SOBT.savedVariables.selectedPos, GuiRoot, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-	OBIndicatorLabel:ClearAnchors()
-	OBIndicatorLabel:SetAnchor(SOBT.savedVariables.selectedPos, OBIndicator, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-	
 	
 	--Settings
 	local settings = LibHarvensAddonSettings:AddAddon("Simple Off Balance Tracker")
@@ -420,157 +417,55 @@ function SOBT.Initialize()
         },
         disable = function() return areSettingsDisabled end,
     }
-	
-    local dropdown_pos = {
-        type = LibHarvensAddonSettings.ST_DROPDOWN,
-        label = "Tracker Position",
-        tooltip = "",
-        setFunction = function(combobox, name, item)
-			SOBT.savedVariables.selectedText_pos = name
-			SOBT.savedVariables.selectedPos = item.data
-			
-			OBIndicator:ClearAnchors()
-			OBIndicator:SetAnchor(SOBT.savedVariables.selectedPos, GuiRoot, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-			OBIndicatorLabel:ClearAnchors()
-			OBIndicatorLabel:SetAnchor(SOBT.savedVariables.selectedPos, OBIndicator, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-        
-			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
-			OBIndicator:SetHidden(false)
-			changeCounter = changeCounter + 1
-			local changeNum = changeCounter
-			zo_callLater(function()
-				if changeNum == changeCounter then
-					changeCounter = 0
-					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
-						OBIndicator:SetHidden(true)
+
+	SOBT.currentlyChangingPosition = false
+	local repositionUI = {
+		type = LibHarvensAddonSettings.ST_CHECKBOX,
+		label = "Reposition UI",
+		tooltip = "When enabled, you will be able to freely move around the UI with your right joystick.\n\nSet this to OFF after configuring position.",
+		getFunction = function() return SOBT.currentlyChangingPosition end,
+		setFunction = function(value) 
+			SOBT.currentlyChangingPosition = value
+			if value == true then
+				OBIndicator:SetHidden(false)
+				EVENT_MANAGER:RegisterForUpdate(SOBT.name.."AdjustUI", 10,  function() 
+					if SOBT.savedVariables.selectedPos ~= 3 then SOBT.savedVariables.selectedPos = 3 end
+					local posX, posY = GetGamepadRightStickX(), GetGamepadRightStickY()
+					if posX ~= 0 or posY ~= 0 then 
+						SOBT.savedVariables.offset_x = SOBT.savedVariables.offset_x + 10*posX
+						SOBT.savedVariables.offset_y = SOBT.savedVariables.offset_y - 10*posY
+
+						if SOBT.savedVariables.offset_x < 0 then SOBT.savedVariables.offset_x = 0 end
+						if SOBT.savedVariables.offset_y < 0 then SOBT.savedVariables.offset_y = 0 end
+						if SOBT.savedVariables.offset_x > (GuiRoot:GetWidth() - OBIndicator:GetWidth()) then SOBT.savedVariables.offset_x = (GuiRoot:GetWidth() - OBIndicator:GetWidth()) end
+						if SOBT.savedVariables.offset_y >(GuiRoot:GetHeight() - OBIndicator:GetHeight()) then SOBT.savedVariables.offset_y = (GuiRoot:GetHeight() - OBIndicator:GetHeight()) end
+
+						OBIndicator:ClearAnchors()
+						OBIndicator:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
+					end 
+				end)
+			else
+				EVENT_MANAGER:UnregisterForUpdate(SOBT.name.."AdjustUI")
+				--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+				OBIndicator:SetHidden(false)
+				changeCounter = changeCounter + 1
+				local changeNum = changeCounter
+				zo_callLater(function()
+					if changeNum == changeCounter then
+						changeCounter = 0
+						if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+							OBIndicator:SetHidden(true)
+						end
 					end
-				end
-			end, 5000)
+				end, 5000)
+			end
 		end,
-        getFunction = function()
-            return SOBT.savedVariables.selectedText_pos
-        end,
-        default = SOBT.defaults.selectedText_pos,
-        items = {
-            {
-                name = "Top Left",
-                data = 3
-            },
-			{
-                name = "Top",
-                data = 1
-            },
-            {
-                name = "Top Right",
-                data = 9
-            },
-			{
-                name = "Left",
-                data = 2
-            },
-			{
-                name = "Center",
-                data = 128
-            },
-			{
-                name = "Right",
-                data = 8
-            },
-			{
-                name = "Bottom Left",
-                data = 6
-            },
-			{
-                name = "Bottom",
-                data = 4
-            },
-			{
-                name = "Bottom Right",
-                data = 12
-            },
-        },
-        disable = function() return areSettingsDisabled end,
-    }
-	
-	--x position offset
-	local slider_x = {
-        type = LibHarvensAddonSettings.ST_SLIDER,
-        label = "X Offset",
-        tooltip = "",
-        setFunction = function(value)
-			SOBT.savedVariables.offset_x = value
-			
-			OBIndicator:ClearAnchors()
-			OBIndicator:SetAnchor(SOBT.savedVariables.selectedPos, GuiRoot, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-			OBIndicatorLabel:ClearAnchors()
-			OBIndicatorLabel:SetAnchor(SOBT.savedVariables.selectedPos, OBIndicator, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-        
-			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
-			OBIndicator:SetHidden(false)
-			changeCounter = changeCounter + 1
-			local changeNum = changeCounter
-			zo_callLater(function()
-				if changeNum == changeCounter then
-					changeCounter = 0
-					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
-						OBIndicator:SetHidden(true)
-					end
-				end
-			end, 5000)
-		end,
-        getFunction = function()
-            return SOBT.savedVariables.offset_x
-        end,
-        default = 0,
-        min = -750,
-        max = 750,
-        step = 5,
-        unit = "", --optional unit
-        format = "%d", --value format
-        disable = function() return areSettingsDisabled end,
-    }
-	
-	--y position offset
-	local slider_y = {
-        type = LibHarvensAddonSettings.ST_SLIDER,
-        label = "Y Offset",
-        tooltip = "",
-        setFunction = function(value)
-			SOBT.savedVariables.offset_y = value
-			
-			OBIndicator:ClearAnchors()
-			OBIndicator:SetAnchor(SOBT.savedVariables.selectedPos, GuiRoot, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-			OBIndicatorLabel:ClearAnchors()
-			OBIndicatorLabel:SetAnchor(SOBT.savedVariables.selectedPos, OBIndicator, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
-        
-			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
-			OBIndicator:SetHidden(false)
-			changeCounter = changeCounter + 1
-			local changeNum = changeCounter
-			zo_callLater(function()
-				if changeNum == changeCounter then
-					changeCounter = 0
-					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
-						OBIndicator:SetHidden(true)
-					end
-				end
-			end, 5000)
-		end,
-        getFunction = function()
-            return SOBT.savedVariables.offset_y
-        end,
-        default = 0,
-        min = -750,
-        max = 750,
-        step = 5,
-        unit = "", --optional unit
-        format = "%d", --value format
-        disable = function() return areSettingsDisabled end,
-    }
-	
+		default = SOBT.currentlyChangingPosition
+	}
+
 	settings:AddSettings({generalSection, toggle, toggle_combat, resetDefaults})
 	settings:AddSettings({textSection, dropdown_font, color, color_Cooldown, color_Inactive})
-	settings:AddSettings({positionSection, dropdown_pos, slider_x, slider_y})
+	settings:AddSettings({positionSection, repositionUI})
 	
 	EVENT_MANAGER:RegisterForUpdate(SOBT.name, 100, SOBT.OnUpdate)
 	EVENT_MANAGER:RegisterForEvent(SOBT.name, EVENT_PLAYER_COMBAT_STATE, SOBT.onCombat)
