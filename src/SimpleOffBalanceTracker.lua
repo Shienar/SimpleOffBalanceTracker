@@ -421,7 +421,7 @@ function SOBT.Initialize()
 	SOBT.currentlyChangingPosition = false
 	local repositionUI = {
 		type = LibHarvensAddonSettings.ST_CHECKBOX,
-		label = "Reposition UI",
+		label = "Joystick Reposition",
 		tooltip = "When enabled, you will be able to freely move around the UI with your right joystick.\n\nSet this to OFF after configuring position.",
 		getFunction = function() return SOBT.currentlyChangingPosition end,
 		setFunction = function(value) 
@@ -463,9 +463,83 @@ function SOBT.Initialize()
 		default = SOBT.currentlyChangingPosition
 	}
 
+	--x position offset
+	local slider_x = {
+        type = LibHarvensAddonSettings.ST_SLIDER,
+        label = "X Offset",
+        tooltip = "",
+        setFunction = function(value)
+			SOBT.savedVariables.offset_x = value
+			if SOBT.savedVariables.selectedPos ~= 3 then SOBT.savedVariables.selectedPos = 3 end
+			
+			OBIndicator:ClearAnchors()
+			OBIndicator:SetAnchor(SOBT.savedVariables.selectedPos, GuiRoot, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
+			
+			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+			OBIndicator:SetHidden(false)
+			changeCounter = changeCounter + 1
+			local changeNum = changeCounter
+			zo_callLater(function()
+				if changeNum == changeCounter then
+					changeCounter = 0
+					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+						OBIndicator:SetHidden(true)
+					end
+				end
+			end, 5000)
+		end,
+        getFunction = function()
+            return SOBT.savedVariables.offset_x
+        end,
+        default = 0,
+        min = 0,
+        max = GuiRoot:GetWidth(),
+        step = 5,
+        unit = "", --optional unit
+        format = "%d", --value format
+        disable = function() return areSettingsDisabled end,
+    }
+	
+	--y position offset
+	local slider_y = {
+        type = LibHarvensAddonSettings.ST_SLIDER,
+        label = "Y Offset",
+        tooltip = "",
+        setFunction = function(value)
+			SOBT.savedVariables.offset_y = value
+			if SOBT.savedVariables.selectedPos ~= 3 then SOBT.savedVariables.selectedPos = 3 end
+			
+			OBIndicator:ClearAnchors()
+			OBIndicator:SetAnchor(SOBT.savedVariables.selectedPos, GuiRoot, SOBT.savedVariables.selectedPos, SOBT.savedVariables.offset_x, SOBT.savedVariables.offset_y)
+			
+			--Hide UI 5 seconds after most recent change. multiple changes can be queued.
+			OBIndicator:SetHidden(false)
+			changeCounter = changeCounter + 1
+			local changeNum = changeCounter
+			zo_callLater(function()
+				if changeNum == changeCounter then
+					changeCounter = 0
+					if SCENE_MANAGER:GetScene("hud"):GetState() == SCENE_HIDDEN or SOBT.savedVariables.checked then
+						OBIndicator:SetHidden(true)
+					end
+				end
+			end, 5000)
+		end,
+        getFunction = function()
+            return SOBT.savedVariables.offset_y
+        end,
+        default = 0,
+        min = 0,
+        max = GuiRoot:GetHeight(),
+        step = 5,
+        unit = "", --optional unit
+        format = "%d", --value format
+        disable = function() return areSettingsDisabled end,
+    }
+
 	settings:AddSettings({generalSection, toggle, toggle_combat, resetDefaults})
 	settings:AddSettings({textSection, dropdown_font, color, color_Cooldown, color_Inactive})
-	settings:AddSettings({positionSection, repositionUI})
+	settings:AddSettings({positionSection, repositionUI, slider_x, slider_y})
 	
 	EVENT_MANAGER:RegisterForUpdate(SOBT.name, 100, SOBT.OnUpdate)
 	EVENT_MANAGER:RegisterForEvent(SOBT.name, EVENT_PLAYER_COMBAT_STATE, SOBT.onCombat)
