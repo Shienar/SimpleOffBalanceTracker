@@ -430,7 +430,7 @@ function SOBT.Initialize()
 				OBIndicator:SetHidden(false)
 				EVENT_MANAGER:RegisterForUpdate(SOBT.name.."AdjustUI", 10,  function() 
 					if SOBT.savedVariables.selectedPos ~= 3 then SOBT.savedVariables.selectedPos = 3 end
-					local posX, posY = GetGamepadRightStickX(), GetGamepadRightStickY()
+					local posX, posY = GetGamepadRightStickX(true), GetGamepadRightStickY(true)
 					if posX ~= 0 or posY ~= 0 then 
 						SOBT.savedVariables.offset_x = SOBT.savedVariables.offset_x + 10*posX
 						SOBT.savedVariables.offset_y = SOBT.savedVariables.offset_y - 10*posY
