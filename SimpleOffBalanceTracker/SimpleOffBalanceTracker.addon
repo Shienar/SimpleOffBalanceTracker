@@ -4,7 +4,7 @@
 ## AddOnVersion: 10501
 ## Version: 1.5.1
 ## IsLibrary: False
-## ConsoleDependsOn: LibHarvensAddonSettings>=20004
+## OptionalDependsOn: LibHarvensAddonSettings>=20004
 ## SavedVariables: SOBTSavedVariables
 
 SimpleOffBalanceTracker.xml
